@@ -43,29 +43,31 @@ async function getPineconeClient() {
 }
 
 function formatChatHistory(human, ai, previousChatHistory) {
-  const newInteraction = `Human: ${human}\nAI: ${ai}`;
+  const newInteraction = `[INST] ${human}  [/INST]\n${ai}`;
   if (!previousChatHistory) {
     return newInteraction;
   }
-  return `${previousChatHistory}\n\n${newInteraction}`;
+  return `${previousChatHistory}\n${newInteraction}`;
 }
 
-async function getChain() {
+async function getChain(documentGroup) {
   const pinecone = await getPineconeClient();
   const pineconeIndex = pinecone.index("document-kb");
   const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
     pineconeIndex,
+    namespace: documentGroup,
   });
   const retriever = vectorStore.asRetriever();
 
   const questionPrompt = PromptTemplate.fromTemplate(
-    `Restrict your response to the provided context when answering the question. If unsure, admit lack of knowledge instead of speculating. Keep the response brief and focused solely on answering the question.
+    `
+    <<SYS>> You're are a helpful Assistant. Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Be precise, concise, and casual. Keep it short <</SYS>>
   ----------------
   CONTEXT: {context}
   ----------------
   CHAT HISTORY: {chatHistory}
   ----------------
-  QUESTION: {question}
+  QUESTION: [INST] {question} [/INST]
   ----------------
   Helpful Answer:`,
   );
@@ -101,7 +103,17 @@ exports.handler = async (event, context) => {
     });
   }
 
-  const chain = await getChain();
+  if (
+    !requestBody.documentGroup ||
+    typeof requestBody.documentGroup !== "string"
+  ) {
+    return formatError({
+      message: "documentGroup is required and must be a string",
+      statusCode: 400,
+    });
+  }
+
+  const chain = await getChain(requestBody.documentGroup);
 
   const result = await chain.invoke({
     question: requestBody.question,

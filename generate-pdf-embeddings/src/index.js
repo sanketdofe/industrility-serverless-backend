@@ -31,15 +31,19 @@ exports.handler = async (event, context) => {
   const pineconeIndex = pinecone.index("document-kb");
 
   const s3Object = event.Records[0].s3;
+  const key = decodeURIComponent(s3Object.object.key.replace(/\+/g, " "));
   try {
     const object = await S3.getObject({
       Bucket: s3Object.bucket.name,
-      Key: decodeURIComponent(s3Object.object.key.replace(/\+/g, " ")),
+      Key: key,
     }).promise();
 
     const blob = new Blob([object.Body], {
       type: object.ContentType,
     });
+
+    // To allow grouping documents in a namespace
+    const parentDir = key.split("/").slice(0, -1).join("/");
 
     const loader = new WebPDFLoader(blob);
 
@@ -47,6 +51,7 @@ exports.handler = async (event, context) => {
 
     await PineconeStore.fromDocuments(docs, embeddings, {
       pineconeIndex,
+      namespace: parentDir,
     });
   } catch (e) {
     console.log(e);
