@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  document-chat-crud
+
+  SAM Template for document-chat-crud
+
+Globals:
+  Api:
+    OpenApiVersion: 3.0.1
+
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+  AuthToken:
+    Type: String
+    Default: <ACCESS_TOKEN>
+
+Resources:
+  DocumentChatApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      Name: Document Chat Api Gateway
+
+  CreateDocumentChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: create-document-chat
+      CodeUri: src/
+      Handler: create-document-chat.handler
+      Runtime: nodejs18.x
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          NODE_ENV: prod
+          AUTHORIZATION_TOKEN: !Ref AuthToken
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: DocumentChatApiGateway
+            Path: /
+            Method: POST
+
+  GetDocumentChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: get-document-chat
+      CodeUri: src/
+      Handler: get-document-chat.handler
+      Runtime: nodejs18.x
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          NODE_ENV: prod
+          AUTHORIZATION_TOKEN: !Ref AuthToken
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: arn:aws:secretsmanager:us-east-1:793708989585:secret:pinecone-credentials-eGuShq
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: DocumentChatApiGateway
+            Path: /{chatId}
+            Method: GET
+
+  ListAvailableDocumentChatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: list-document-chats
+      CodeUri: src/
+      Handler: list-document-chats.handler
+      Runtime: nodejs18.x
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          NODE_ENV: prod
+          AUTHORIZATION_TOKEN: !Ref AuthToken
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: DocumentChatApiGateway
+            Path: /
+            Method: GET
+
+
+Outputs:
+  DocumentChatApiGateway:
+    Description: API Gateway endpoint URL for document-chat-crud function
+    Value: !Sub "https://${DocumentChatApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"
+
+

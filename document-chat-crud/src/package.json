@@ -1,0 +1,15 @@
+{
+  "name": "document-chat-crud",
+  "version": "1.0.0",
+  "description": "Document Chat Crud Apis",
+  "author": "Sanket Dofe",
+  "private": true,
+  "main": "list-document-chats.js",
+  "dependencies": {
+    "@pinecone-database/pinecone": "^2.2.0",
+    "aws-sdk": "^2.1598.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  }
+}
