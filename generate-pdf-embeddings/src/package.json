@@ -1,0 +1,19 @@
+{
+  "name": "generate-pdf-embeddings",
+  "version": "1.0.0",
+  "description": "Pdf Embedding Generator",
+  "author": "Sanket Dofe",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "@langchain/community": "^0.0.47",
+    "@langchain/pinecone": "^0.0.4",
+    "@pinecone-database/pinecone": "^2.2.0",
+    "aws-sdk": "^2.1598.0",
+    "langchain": "^0.1.33",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  }
+}

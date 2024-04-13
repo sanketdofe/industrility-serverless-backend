@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  generate-pdf-embeddings
+
+  SAM Template for generate-pdf-embeddings
+
+Globals:
+  Api:
+    OpenApiVersion: 3.0.1
+  Function:
+    Timeout: 30
+
+Parameters:
+  SourceBucketName:
+    Type: String
+    Default: document-chat-store
+
+Resources:
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt GeneratePdfEmbeddingsFunction.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: 's3.amazonaws.com'
+      SourceAccount: !Sub ${AWS::AccountId}
+      SourceArn: !GetAtt SourceBucket.Arn
+
+  GeneratePdfEmbeddingsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: generate-pdf-embeddings
+      CodeUri: src/
+      Handler: index.handler
+      Runtime: nodejs18.x
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          NODE_ENV: prod
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SourceBucketName
+            existing: true
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: arn:aws:secretsmanager:us-east-1:793708989585:secret:pinecone-credentials-eGuShq
+        - Statement:
+            Sid: "BedrockScopedAccess"
+            Effect: "Allow"
+            Action: "bedrock:InvokeModel"
+            Resource: "arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v1"
+      Events:
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket: !Ref SourceBucket
+            Events:
+              - s3:ObjectCreated:*
+
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref SourceBucketName
+
+Outputs:
+  GeneratePdfEmbeddingsFunction:
+    Description: "Function ARN"
+    Value: !GetAtt GeneratePdfEmbeddingsFunction.Arn
