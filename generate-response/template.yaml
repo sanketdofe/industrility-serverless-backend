@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  generate-response
+
+  SAM Template for generate-response
+
+Globals:
+  Api:
+    OpenApiVersion: 3.0.1
+
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+
+Resources:
+  GenerateResponseApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      Name: Generate Response Api Gateway
+
+  GenerateResponseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: generate-response
+      CodeUri: src/
+      Handler: index.handler
+      Runtime: nodejs18.x
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          NODE_ENV: prod
+          AUTHORIZATION_TOKEN: <ACCESS_TOKEN>
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: arn:aws:secretsmanager:us-east-1:793708989585:secret:pinecone-credentials-eGuShq
+        - Statement:
+            Sid: "BedrockScopedAccess"
+            Effect: "Allow"
+            Action: "bedrock:InvokeModel"
+            Resource:
+              - "arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v1"
+              - "arn:aws:bedrock:*::foundation-model/meta.llama2-13b-chat-v1"
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: GenerateResponseApiGateway
+            Path: /
+            Method: POST
+
+
+Outputs:
+  GenerateResponseApiGatewayEndpoint:
+    Description: API Gateway endpoint URL for generate-response function
+    Value: !Sub "https://${GenerateResponseApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"
+  GenerateResponseFunction:
+    Description: "Function ARN"
+    Value: !GetAtt GenerateResponseFunction.Arn
+
+
