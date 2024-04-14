@@ -16,6 +16,9 @@ Parameters:
   AuthToken:
     Type: String
     Default: <ACCESS_TOKEN>
+  SourceBucketName:
+    Type: String
+    Default: document-chat-store
 
 Resources:
   DocumentChatApiGateway:
@@ -42,6 +45,11 @@ Resources:
         Variables:
           NODE_ENV: prod
           AUTHORIZATION_TOKEN: !Ref AuthToken
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref SourceBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref SourceBucketName
       Events:
         ApiEvent:
           Type: Api
@@ -67,6 +75,10 @@ Resources:
       Policies:
         - AWSSecretsManagerGetSecretValuePolicy:
             SecretArn: arn:aws:secretsmanager:us-east-1:793708989585:secret:pinecone-credentials-eGuShq
+        - S3WritePolicy:
+            BucketName: !Ref SourceBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref SourceBucketName
       Events:
         ApiEvent:
           Type: Api
@@ -74,6 +86,31 @@ Resources:
             RestApiId:
               Ref: DocumentChatApiGateway
             Path: /{chatId}
+            Method: GET
+
+  GetIsDocumentChatReadyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: get-is-document-chat-ready
+      CodeUri: src/
+      Handler: is-chat-ready.handler
+      Runtime: nodejs18.x
+      MemorySize: 512
+      Timeout: 60
+      Environment:
+        Variables:
+          NODE_ENV: prod
+          AUTHORIZATION_TOKEN: !Ref AuthToken
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: arn:aws:secretsmanager:us-east-1:793708989585:secret:pinecone-credentials-eGuShq
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: DocumentChatApiGateway
+            Path: /{chatId}/is-ready
             Method: GET
 
   ListAvailableDocumentChatsFunction:
@@ -89,6 +126,11 @@ Resources:
         Variables:
           NODE_ENV: prod
           AUTHORIZATION_TOKEN: !Ref AuthToken
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref SourceBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref SourceBucketName
       Events:
         ApiEvent:
           Type: Api
@@ -116,6 +158,13 @@ Resources:
           Type: Api
           Properties:
             Path: /{chatId}
+            Method: options
+            RestApiId:
+              Ref: DocumentChatApiGateway
+        GetIsDocumentChatReadyAPIOptions:
+          Type: Api
+          Properties:
+            Path: /{chatId}/is-ready
             Method: options
             RestApiId:
               Ref: DocumentChatApiGateway
