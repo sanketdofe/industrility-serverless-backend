@@ -5,7 +5,7 @@ const {
 } = require("./common/request-helpers");
 const { listObjects, getObjectSignedUrlBulk } = require("./common/s3-helpers");
 const { getPineconeIndexStats } = require("./common/pinecone-helpers");
-const { BUCKET_NAME, PINECONE_INDEX_NAME } = require("./constants");
+const { BUCKET_NAME, PINECONE_INDEX_NAME } = require("./common/constants");
 
 exports.handler = async (event, context) => {
   const validated = validateAccess(event);

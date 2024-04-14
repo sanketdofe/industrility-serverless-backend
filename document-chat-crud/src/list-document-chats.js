@@ -1,6 +1,6 @@
 const { validateAccess, formatResponse } = require("./common/request-helpers");
 const { listDirectories } = require("./common/s3-helpers");
-const { BUCKET_NAME } = require("./constants");
+const { BUCKET_NAME } = require("./common/constants");
 
 exports.handler = async (event, context) => {
   const validated = validateAccess(event);

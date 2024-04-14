@@ -15,7 +15,7 @@ Parameters:
     Default: prod
   AuthToken:
     Type: String
-    Default: <ACCESS_TOKEN>
+    Default: 19a1b17b-fc2b-4da8-be31-313670e64466
 
 Resources:
   DocumentChatApiGateway:
@@ -23,6 +23,11 @@ Resources:
     Properties:
       StageName: !Ref Stage
       Name: Document Chat Api Gateway
+      Cors:
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+        AllowCredentials: "'*'"
+        AllowMethods: "'*'"
 
   CreateDocumentChatFunction:
     Type: AWS::Serverless::Function
@@ -92,6 +97,28 @@ Resources:
               Ref: DocumentChatApiGateway
             Path: /
             Method: GET
+
+  OptionHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: cors.handler
+      Runtime: nodejs18.x
+      Timeout: 5
+      Events:
+        ListAvailableDocumentChatsApiOption:
+          Type: Api
+          Properties:
+            Path: /
+            Method: options
+            RestApiId:
+              Ref: DocumentChatApiGateway
+        GetDocumentChatAPIOptions:
+          Type: Api
+          Properties:
+            Path: /{chatId}
+            Method: options
+            RestApiId:
+              Ref: DocumentChatApiGateway
 
 
 Outputs:
