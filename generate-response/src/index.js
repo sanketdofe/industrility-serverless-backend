@@ -42,12 +42,9 @@ async function getPineconeClient() {
   return new Pinecone({ apiKey: parsedPineConeSecret.apiKey });
 }
 
-function formatChatHistory(human, ai, previousChatHistory) {
-  const newInteraction = `[INST] ${human}  [/INST]\n${ai}`;
-  if (!previousChatHistory) {
-    return newInteraction;
-  }
-  return `${previousChatHistory}\n${newInteraction}`;
+function formatChatHistory(chatHistory) {
+    return chatHistory.map((interaction) => interaction.type === 'human' ? `[INST] ${interaction.text}  [/INST]` : interaction.text
+    ).join('\n');
 }
 
 async function getChain(documentGroup) {
@@ -75,7 +72,7 @@ async function getChain(documentGroup) {
   return RunnableSequence.from([
     {
       question: (input) => input.question,
-      chatHistory: (input) => input.chatHistory ?? "",
+      chatHistory: (input) => formatChatHistory( input.chatHistory ?? []),
       context: async (input) => {
         const relevantDocs = await retriever.getRelevantDocuments(
           input.question,
@@ -104,27 +101,29 @@ exports.handler = async (event, context) => {
   }
 
   if (
-    !requestBody.documentGroup ||
-    typeof requestBody.documentGroup !== "string"
+    !requestBody.chatId ||
+    typeof requestBody.chatId !== "string"
   ) {
     return formatError({
-      message: "documentGroup is required and must be a string",
+      message: "chatId is required and must be a string",
       statusCode: 400,
     });
   }
 
-  const chain = await getChain(requestBody.documentGroup);
+  const previousChatHistory = requestBody.chatHistory;
+
+  const chain = await getChain(requestBody.chatId);
 
   const result = await chain.invoke({
     question: requestBody.question,
     chatHistory: requestBody.chatHistory,
   });
 
-  const chatHistory = formatChatHistory(
-    requestBody.question,
-    result,
-    requestBody.chatHistory,
-  );
 
-  return formatResponse({ chatHistory, result });
+  const newChatHistory = previousChatHistory && Array.isArray(previousChatHistory) ? [...previousChatHistory] : [];
+  newChatHistory.push({type: "human", text: requestBody.question});
+  newChatHistory.push({type: "agent", text: result});
+
+
+  return formatResponse({ chatHistory: newChatHistory, result });
 };
