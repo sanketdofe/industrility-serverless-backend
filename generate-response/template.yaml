@@ -20,6 +20,11 @@ Resources:
     Properties:
       StageName: !Ref Stage
       Name: Generate Response Api Gateway
+      Cors:
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+        AllowCredentials: "'*'"
+        AllowMethods: "'*'"
 
   GenerateResponseFunction:
     Type: AWS::Serverless::Function
@@ -52,6 +57,22 @@ Resources:
               Ref: GenerateResponseApiGateway
             Path: /
             Method: POST
+
+  OptionHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: cors.handler
+      Runtime: nodejs18.x
+      Timeout: 5
+      Events:
+        GenerateResponseApiOption:
+          Type: Api
+          Properties:
+            Path: /
+            Method: options
+            RestApiId:
+              Ref: GenerateResponseApiGateway
 
 
 Outputs:

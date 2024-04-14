@@ -2,10 +2,16 @@ const serialize = (object) => {
   return JSON.stringify(object, null, 2);
 };
 
+const commonHeaders = {
+  'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+  'Access-Control-Allow-Methods': '*',
+  'Access-Control-Allow-Origin': '*'
+}
 const formatResponse = (body) => {
   return {
     statusCode: 200,
     headers: {
+      ...commonHeaders,
       "Content-Type": "application/json",
     },
     isBase64Encoded: false,
@@ -18,6 +24,7 @@ const formatError = (error) => {
   return {
     statusCode: error.statusCode || error.cause?.statusCode,
     headers: {
+      ...commonHeaders,
       "Content-Type": "application/json",
       "x-amzn-ErrorType": error.code,
     },
