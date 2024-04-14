@@ -15,7 +15,7 @@ Parameters:
     Default: prod
   AuthToken:
     Type: String
-    Default: 19a1b17b-fc2b-4da8-be31-313670e64466
+    Default: <ACCESS_TOKEN>
 
 Resources:
   DocumentChatApiGateway:
