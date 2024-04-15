@@ -57,7 +57,7 @@ exports.handler = async (event, context) => {
     await PineconeStore.fromDocuments(docs, embeddings, {
       pineconeIndex,
       namespace: sanitizedNamespace,
-      maxConcurrency: 5,
+      maxConcurrency: 1,
     });
   } catch (e) {
     console.log(e);
