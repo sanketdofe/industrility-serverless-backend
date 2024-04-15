@@ -49,9 +49,15 @@ exports.handler = async (event, context) => {
 
     const docs = await loader.load();
 
+    const sanitizedNamespace = parentDir
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .replace(/\s+/g, "-");
+
     await PineconeStore.fromDocuments(docs, embeddings, {
       pineconeIndex,
-      namespace: parentDir,
+      namespace: sanitizedNamespace,
+      maxConcurrency: 5,
     });
   } catch (e) {
     console.log(e);

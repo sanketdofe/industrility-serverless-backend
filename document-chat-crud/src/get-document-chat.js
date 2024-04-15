@@ -5,7 +5,11 @@ const {
 } = require("./common/request-helpers");
 const { listObjects, getObjectSignedUrlBulk } = require("./common/s3-helpers");
 const { getPineconeIndexStats } = require("./common/pinecone-helpers");
-const { BUCKET_NAME, PINECONE_INDEX_NAME } = require("./common/constants");
+const {
+  BUCKET_NAME,
+  PINECONE_INDEX_NAME,
+  convertS3DirectoryToPineConeNamespace,
+} = require("./common/constants");
 
 exports.handler = async (event, context) => {
   const validated = validateAccess(event);
@@ -32,8 +36,14 @@ exports.handler = async (event, context) => {
   const pineconeIndexStats = await getPineconeIndexStats(PINECONE_INDEX_NAME);
 
   let isChatReady = false;
-  if (pineconeIndexStats.namespaces?.[chatId]?.recordCount > 0) {
-    isChatReady = true;
+  if (pineconeIndexStats.namespaces) {
+    const formattedChatNamespace =
+      convertS3DirectoryToPineConeNamespace(chatId);
+    const matchingNamespace =
+      pineconeIndexStats.namespaces[formattedChatNamespace];
+    if (matchingNamespace?.recordCount > 0) {
+      isChatReady = true;
+    }
   }
   return formatResponse({
     id: chatId,

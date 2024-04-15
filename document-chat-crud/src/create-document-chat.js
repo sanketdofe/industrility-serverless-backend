@@ -4,9 +4,7 @@ const {
   formatError,
   formatResponse,
 } = require("./common/request-helpers");
-const {
-  getPreSignedUrlForUploadingObjectBulk,
-} = require("./common/s3-helpers");
+const { generateCredentialsForFileUpload } = require("./common/s3-helpers");
 const { BUCKET_NAME } = require("./common/constants");
 
 exports.handler = async (event, context) => {
@@ -45,15 +43,17 @@ exports.handler = async (event, context) => {
     });
   }
 
-  const presignedUrls = await getPreSignedUrlForUploadingObjectBulk(
+  const { credentials, keys, region } = await generateCredentialsForFileUpload(
     BUCKET_NAME,
     requestBody.documentNames.map(
       (documentName) => `${requestBody.name}/${documentName}`,
     ),
-    10 * 60,
   );
 
   return formatResponse({
-    presignedUrls,
+    credentials,
+    bucket: BUCKET_NAME,
+    keys,
+    region,
   });
 };

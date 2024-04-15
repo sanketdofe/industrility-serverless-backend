@@ -45,6 +45,7 @@ Resources:
         Variables:
           NODE_ENV: prod
           AUTHORIZATION_TOKEN: !Ref AuthToken
+          UPLOAD_FILE_ASSUMED_ROLE: arn:aws:iam::793708989585:role/s3-upload-files-access
       Policies:
         - S3WritePolicy:
             BucketName: !Ref SourceBucketName
@@ -143,6 +144,7 @@ Resources:
   OptionHandler:
     Type: AWS::Serverless::Function
     Properties:
+      CodeUri: src/
       Handler: cors.handler
       Runtime: nodejs18.x
       Timeout: 5
