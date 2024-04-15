@@ -23,7 +23,9 @@ exports.handler = async (event, context) => {
       statusCode: 400,
     });
   }
-  const chatId = event.pathParameters.chatId;
+
+  const chatId = decodeURIComponent(event.pathParameters.chatId);
+
   const documentKeys = await listObjects(BUCKET_NAME, `${chatId}/`);
   const documents = await getObjectSignedUrlBulk(
     BUCKET_NAME,

@@ -21,7 +21,7 @@ exports.handler = async (event, context) => {
       statusCode: 400,
     });
   }
-  const chatId = event.pathParameters.chatId;
+  const chatId = decodeURIComponent(event.pathParameters.chatId);
 
   const pineconeIndexStats = await getPineconeIndexStats(PINECONE_INDEX_NAME);
 

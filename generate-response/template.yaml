@@ -49,6 +49,7 @@ Resources:
             Resource:
               - "arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v1"
               - "arn:aws:bedrock:*::foundation-model/meta.llama2-13b-chat-v1"
+              - "arn:aws:bedrock:*::foundation-model/anthropic.claude-v2"
       Events:
         ApiEvent:
           Type: Api
