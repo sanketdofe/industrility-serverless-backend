@@ -25,8 +25,15 @@ const embeddings = new BedrockEmbeddings({
     region: "us-east-1",
 });
 
-const model = new BedrockChat({
+const llamaModel = new BedrockChat({
     model: "meta.llama2-13b-chat-v1",
+    region: "us-east-1",
+    temperature: 0.3,
+    maxTokens: 1000,
+});
+
+const claudeModel = new BedrockChat({
+    model: "anthropic.claude-v2",
     region: "us-east-1",
     temperature: 0.3,
     maxTokens: 1000,
@@ -42,9 +49,49 @@ async function getPineconeClient() {
     return new Pinecone({apiKey: parsedPineConeSecret.apiKey});
 }
 
-function formatChatHistory(chatHistory) {
+function formatChatHistoryForLlama(chatHistory) {
     return chatHistory.map((interaction) => interaction.type === 'human' ? `[INST] ${interaction.text}  [/INST]` : interaction.text
     ).join('\n');
+}
+
+function formatChatHistoryForClaude(chatHistory) {
+    return chatHistory.map((interaction) => interaction.type === 'human' ? `Human: ${interaction.text}` : `AI: ${interaction.text}`
+    ).join('\n');
+}
+
+function getModelInitParams(model) {
+    if (model === 'CLAUDE') {
+        return {
+            formatChatHistory: formatChatHistoryForClaude,
+            model: claudeModel,
+            prompt: PromptTemplate.fromTemplate(`Restrict your response to the provided context when answering the question. If unsure, admit lack of knowledge instead of speculating.  Be precise, concise, and casual. Keep it short. Here, in the CHAT HISTORY, AI refers to the answers provided by you.
+  ----------------
+  CONTEXT: {context}
+  ----------------
+  CHAT HISTORY: {chatHistory}
+  ----------------
+  QUESTION: {question}
+  ----------------
+  Helpful Answer:`,
+            )
+        }
+    }
+
+    // default to llama
+    return {
+        formatChatHistory: formatChatHistoryForLlama,
+        model: llamaModel,
+        prompt: PromptTemplate.fromTemplate(`<<SYS>> You're are a helpful Assistant. Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Be precise, concise, and casual. Keep it short <</SYS>>
+  ----------------
+  CONTEXT: {context}
+  ----------------
+  CHAT HISTORY: {chatHistory}
+  ----------------
+  QUESTION: [INST] {question} [/INST]
+  ----------------
+  Helpful Answer:`,
+        )
+    }
 }
 
 const convertS3DirectoryToPineConeNamespace = (s3Key) => {
@@ -54,7 +101,7 @@ const convertS3DirectoryToPineConeNamespace = (s3Key) => {
         .replace(/\s+/g, "-");
 };
 
-async function getChain(documentGroup) {
+async function getChain(documentGroup, requestedModel) {
     const formattedChatNamespace =
         convertS3DirectoryToPineConeNamespace(documentGroup);
     const pinecone = await getPineconeClient();
@@ -65,18 +112,7 @@ async function getChain(documentGroup) {
     });
     const retriever = vectorStore.asRetriever();
 
-    const questionPrompt = PromptTemplate.fromTemplate(
-        `
-    <<SYS>> You're are a helpful Assistant. Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Be precise, concise, and casual. Keep it short <</SYS>>
-  ----------------
-  CONTEXT: {context}
-  ----------------
-  CHAT HISTORY: {chatHistory}
-  ----------------
-  QUESTION: [INST] {question} [/INST]
-  ----------------
-  Helpful Answer:`,
-    );
+    const {prompt: questionPrompt, model, formatChatHistory} = getModelInitParams(requestedModel);
 
     return RunnableSequence.from([
         {
@@ -119,9 +155,19 @@ exports.handler = async (event, context) => {
         });
     }
 
+    if (
+        !requestBody.model ||
+        !['CLAUDE', 'LLAMA'].includes(requestBody.model)
+    ) {
+        return formatError({
+            message: "model is required and must be one of CLAUDE, LLAMA",
+            statusCode: 400,
+        });
+    }
+
     const previousChatHistory = requestBody.chatHistory;
 
-    const chain = await getChain(requestBody.chatId);
+    const chain = await getChain(requestBody.chatId, requestBody.model);
 
     const result = await chain.invoke({
         question: requestBody.question,
