@@ -50,7 +50,7 @@ async function getPineconeClient() {
 }
 
 function formatChatHistoryForLlama(chatHistory) {
-    return chatHistory.map((interaction) => interaction.type === 'human' ? `[INST] ${interaction.text}  [/INST]` : interaction.text
+    return chatHistory.slice(chatHistory.length - 3).map((interaction) => interaction.type === 'human' ? `[INST] ${interaction.text}  [/INST]` : interaction.text
     ).join('\n');
 }
 
@@ -81,15 +81,9 @@ function getModelInitParams(model) {
     return {
         formatChatHistory: formatChatHistoryForLlama,
         model: llamaModel,
-        prompt: PromptTemplate.fromTemplate(`<<SYS>> You're are a helpful Assistant. Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Be precise, concise, and casual. Keep it short <</SYS>>
-  ----------------
-  CONTEXT: {context}
-  ----------------
-  CHAT HISTORY: {chatHistory}
-  ----------------
-  QUESTION: [INST] {question} [/INST]
-  ----------------
-  Helpful Answer:`,
+        prompt: PromptTemplate.fromTemplate(`<<SYS>> You're are a helpful Assistant. Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer. Be precise, concise, and casual. Keep it short. The context is: {context}<</SYS>>
+{chatHistory}
+[INST] {question} [/INST]`,
         )
     }
 }
@@ -110,7 +104,7 @@ async function getChain(documentGroup, requestedModel) {
         pineconeIndex,
         namespace: formattedChatNamespace,
     });
-    const retriever = vectorStore.asRetriever();
+    const retriever = vectorStore.asRetriever(2);
 
     const {prompt: questionPrompt, model, formatChatHistory} = getModelInitParams(requestedModel);
 
